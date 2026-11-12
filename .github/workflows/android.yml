@@ -70,10 +70,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          NOTES='APK امضاشدهٔ Cyberdrop — انتقال فایل P2P بدون سرور، با ادامهٔ خودکار بعد از قطعی.'
-          gh release view v1.0.0 >/dev/null 2>&1 || \
-            gh release create v1.0.0 --title "Cyberdrop 1.0.0" --notes "$NOTES"
+          SHA_SHORT=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          HASH=$(sha256sum out/Cyberdrop-1.0.0.apk | cut -c1-32)
+          NOW=$(date -u +%Y-%m-%dT%H:%MZ)
+          BODY="APK امضاشدهٔ Cyberdrop — انتقال فایل P2P بدون سرور، با ادامهٔ خودکار پس از قطعی. build ${SHA_SHORT} · ${NOW} · sha256 ${HASH}"
+          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "Cyberdrop 1.0.0" --notes "$BODY"
           gh release upload v1.0.0 out/Cyberdrop-1.0.0.apk out/SHA256.txt --clobber
+          gh release edit v1.0.0 --notes "$BODY"
 
       - name: Publish build log (failures only)
         if: failure()
