@@ -47,6 +47,11 @@ fun CyberdropRoot(engine: TransferEngine) {
                         myId = engine.myId,
                         onSend = { dest = Dest.SEND },
                         onReceive = { dest = Dest.RECEIVE },
+                        onAcceptRequest = {
+                            engine.acceptIncoming()
+                            dest = Dest.RECEIVE
+                        },
+                        onRejectRequest = { engine.rejectIncoming() },
                         onSettings = { dest = Dest.SETTINGS },
                         onCancel = { engine.cancel() },
                         onDismiss = { engine.dismissFinished() },

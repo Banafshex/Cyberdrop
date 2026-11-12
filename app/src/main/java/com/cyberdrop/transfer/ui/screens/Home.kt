@@ -37,6 +37,8 @@ fun HomeScreen(
     myId: String,
     onSend: () -> Unit,
     onReceive: () -> Unit,
+    onAcceptRequest: () -> Unit,
+    onRejectRequest: () -> Unit,
     onSettings: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
@@ -127,7 +129,7 @@ fun HomeScreen(
         }
         state.request?.let { req ->
             Spacer(Modifier.height(16.dp))
-            IncomingRequestCard(req, onAccept = onReceive, onReject = onCancel)
+            IncomingRequestCard(req, onAccept = onAcceptRequest, onReject = onRejectRequest)
         }
 
         Spacer(Modifier.height(22.dp))

@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
@@ -75,6 +77,7 @@ class TransferEngine(private val app: Context) {
 
     private var signaling: Signaling? = null
     private var listenJob: Job? = null
+    private val onlineMutex = Mutex()
     private var sendJob: Job? = null
     private var recvJob: Job? = null
     private var factory: PeerConnectionFactory? = null
@@ -200,7 +203,11 @@ class TransferEngine(private val app: Context) {
 
     // --------------------------------------------------------------- سیگنالینگ
 
-    private suspend fun ensureOnline(force: Boolean = false): Boolean {
+    private suspend fun ensureOnline(force: Boolean = false): Boolean = onlineMutex.withLock {
+        ensureOnlineLocked(force)
+    }
+
+    private suspend fun ensureOnlineLocked(force: Boolean): Boolean {
         val existing = signaling
         if (!force && existing != null && existing.isConnected()) {
             _state.update { it.copy(online = true) }
@@ -235,11 +242,15 @@ class TransferEngine(private val app: Context) {
             "answer" -> {
                 val sdp = msg.optString("sdp")
                 val s = cur
-                if (s != null && s.direction == Direction.SEND) {
+                val tid = msg.optString("tid")
+                if (s != null && s.direction == Direction.SEND && (tid.isEmpty() || tid == s.tid)) {
                     if (sdp.isEmpty()) s.answer.completeExceptionally(IOException("busy")) else s.answer.complete(sdp)
                 }
             }
-            "busy" -> cur?.answer?.completeExceptionally(IOException("busy"))
+            "busy" -> {
+                val s = cur
+                if (s != null && s.direction == Direction.SEND) s.answer.completeExceptionally(IOException("busy"))
+            }
             "resume" -> scope.launch { handleResume(from, msg.optString("tid")) }
             "cancel" -> {
                 note("طرف مقابل انتقال را لغو کرد")
@@ -301,6 +312,7 @@ class TransferEngine(private val app: Context) {
         try {
             while (attempt < MAX_ATTEMPTS) {
                 attempt++
+                closeSession()
                 setOut { it.copy(phase = Phase.CONNECTING, attempt = attempt, message = null) }
                 if (!ensureOnline(force = attempt > 1)) {
                     lastError = "اتصال به شبکه برقرار نشد"

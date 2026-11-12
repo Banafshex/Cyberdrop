@@ -32,16 +32,30 @@ jobs:
         with:
           gradle-version: "8.7"
 
+      - name: Ensure gradle wrapper
+        continue-on-error: true
+        if: ${{ hashFiles('gradlew') == '' }}
+        run: |
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          git add gradlew gradlew.bat gradle/wrapper
+          git -c user.name=cyberdrop-ci -c user.email=ci@users.noreply.github.com commit -q -m "chore: gradle wrapper [skip ci]"
+          git pull -q --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Build APK
         run: |
           set -o pipefail
           gradle --no-daemon --stacktrace assembleRelease 2>&1 | tee build.log
 
-      - name: Collect artifacts
+      - name: Inspect & collect artifacts
         if: success()
         run: |
+          set -o pipefail
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk out/Cyberdrop-1.0.0.apk
+          AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
+          $AAPT dump badging out/Cyberdrop-1.0.0.apk 2>&1 | head -30 | tee inspect.txt
+          unzip -l out/Cyberdrop-1.0.0.apk | grep -E "lib/|classes" | tail -12 | tee -a inspect.txt
           ls -l out
           sha256sum out/*.apk | tee out/SHA256.txt
 
@@ -56,34 +70,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          NOTES='APK امضاشدهٔ Cyberdrop — انتقال فایل P2P بدون سرور، با ادامهٔ خودکار بعد از قطعی.'
           gh release view v1.0.0 >/dev/null 2>&1 || \
-            gh release create v1.0.0 --title "Cyberdrop 1.0.0" --notes "APK امضاشدهٔ اپلیکیشن Cyberdrop — انتقال فایل P2P بدون سرور."
+            gh release create v1.0.0 --title "Cyberdrop 1.0.0" --notes "$NOTES"
           gh release upload v1.0.0 out/Cyberdrop-1.0.0.apk out/SHA256.txt --clobber
 
       - name: Publish build log
         if: always()
-        run: bash .ci-tools/log.sh build.log build-log.txt
-
-  # نسخهٔ عیب‌یابی برای تست سریع (بدون ریلیز)
-  debug:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.7"
-      - name: Build debug
         run: |
-          set -o pipefail
-          gradle --no-daemon assembleDebug 2>&1 | tee debug.log
-      - uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: cyberdrop-debug
-          path: app/build/outputs/apk/debug/*.apk
+          tail -c 4000 inspect.txt >> build.log 2>/dev/null || true
+          bash .ci-tools/log.sh build.log build-log.txt
