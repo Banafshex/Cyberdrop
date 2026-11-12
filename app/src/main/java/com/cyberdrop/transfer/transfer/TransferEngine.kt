@@ -898,8 +898,8 @@ class TransferEngine(private val app: Context) {
     }
 
     private sealed class Attempt {
-        object Done : Attempt
-        class Interrupted(val offset: Long) : Attempt
+        object Done : Attempt()
+        class Interrupted(val offset: Long) : Attempt()
     }
 
     private class RejectedException(message: String) : Exception(message)

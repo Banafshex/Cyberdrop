@@ -114,10 +114,13 @@ fun SettingsScreen(engine: TransferEngine, myId: String, onBack: () -> Unit) {
                         fontSize = 9.sp,
                     )
                 }
-                CyberToggle(checked = autoAccept) {
-                    autoAccept = it
-                    prefs.autoAccept = it
-                }
+                CyberToggle(
+                    checked = autoAccept,
+                    onCheckedChange = {
+                        autoAccept = it
+                        prefs.autoAccept = it
+                    },
+                )
             }
         }
 

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -300,8 +299,4 @@ fun StatusDot(online: Boolean, modifier: Modifier = Modifier) {
         drawCircle(color.copy(alpha = 0.25f * pulse), size.minDimension / 2)
         drawCircle(color, size.minDimension / 3.2f)
     }
-}
-
-fun RowScope.spacer() {
-    Box(Modifier.weight(1f))
 }
