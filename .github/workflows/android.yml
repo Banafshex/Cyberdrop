@@ -78,6 +78,10 @@ jobs:
           gh release upload v1.0.0 out/Cyberdrop-1.0.0.apk out/SHA256.txt --clobber
           gh release edit v1.0.0 --notes "$BODY"
 
+      - name: Annotate failure
+        if: failure()
+        run: python3 .ci-tools/annotate.py build.log
+
       - name: Publish build log (failures only)
         if: failure()
         run: |

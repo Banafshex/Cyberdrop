@@ -49,6 +49,7 @@ fun ReceiveScreen(
     onBack: () -> Unit,
 ) {
     val clip = LocalClipboardManager.current
+    val ctx = LocalContext.current
     Column(
         Modifier
             .fillMaxWidth()
@@ -113,7 +114,7 @@ fun ReceiveScreen(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 state.files.take(30).forEach { f ->
-                    FileRow(f) { shareFile(LocalContext.current, f) }
+                    FileRow(f) { shareFile(ctx, f) }
                 }
             }
         }
