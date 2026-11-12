@@ -79,7 +79,9 @@ Cyberdrop-1.0.0.apk
 
 ```bash
 # پیش‌نیاز: JDK 17 و Android SDK (compileSdk 34)
-gradle assembleRelease      # یا در Android Studio: Build > Build APK(s)
+git clone https://github.com/Banafshex/Cyberdrop.git
+cd Cyberdrop
+./gradlew assembleRelease    # یا در Android Studio: Build > Build APK(s)
 ```
 
 هر push به مخزن، APK را روی GitHub Actions می‌سازد و در Releases می‌گذارد

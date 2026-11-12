@@ -48,6 +48,7 @@ fun SendScreen(
     maxBytes: Long,
     describe: (Uri) -> FileMeta?,
     onSend: (Uri, String) -> Unit,
+    onResumeLast: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
     onBack: () -> Unit,
@@ -81,6 +82,28 @@ fun SendScreen(
 
         state.outgoing?.let { t ->
             TransferCard(t, onCancel = onCancel, onDismiss = onDismiss)
+            Spacer(Modifier.height(18.dp))
+        }
+
+        if (!busy && state.resumable) {
+            NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.Amber) {
+                Label("انتقال نیمه‌کاره", color = Cyber.Amber)
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "ارسال قبلی کامل نشده است. با زدن دکمهٔ زیر از همان بایت ادامه می‌دهیم.",
+                    color = Cyber.TextDim,
+                    fontFamily = Mono,
+                    fontSize = Type.small,
+                    lineHeight = 20.sp,
+                )
+                Spacer(Modifier.height(12.dp))
+                NeonButton(
+                    "ادامهٔ ارسال قبلی",
+                    Modifier.fillMaxWidth(),
+                    accent = Cyber.Amber,
+                    onClick = onResumeLast,
+                )
+            }
             Spacer(Modifier.height(18.dp))
         }
 

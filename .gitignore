@@ -9,3 +9,6 @@ captures/
 .cxx
 *.apk
 *.aab
+
+# CI log relay (committed only by workflows)
+.ci/

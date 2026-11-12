@@ -75,8 +75,8 @@ jobs:
             gh release create v1.0.0 --title "Cyberdrop 1.0.0" --notes "$NOTES"
           gh release upload v1.0.0 out/Cyberdrop-1.0.0.apk out/SHA256.txt --clobber
 
-      - name: Publish build log
-        if: always()
+      - name: Publish build log (failures only)
+        if: failure()
         run: |
           tail -c 4000 inspect.txt >> build.log 2>/dev/null || true
           bash .ci-tools/log.sh build.log build-log.txt

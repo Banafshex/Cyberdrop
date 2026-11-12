@@ -90,7 +90,7 @@ class TransferEngine(private val app: Context) {
     private var acceptSignal: CompletableDeferred<Boolean>? = null
 
     init {
-        _state.update { it.copy(files = loadFiles()) }
+        _state.update { it.copy(files = loadFiles(), resumable = prefs.outgoing != null) }
     }
 
     // ------------------------------------------------------------------ عمومی
@@ -165,6 +165,7 @@ class TransferEngine(private val app: Context) {
                 )
             }
             prefs.outgoing = null
+            _state.update { it.copy(resumable = false) }
             releaseWake()
         }
     }
@@ -304,6 +305,7 @@ class TransferEngine(private val app: Context) {
         prefs.outgoing = JSONObject()
             .put("tid", tid).put("uri", uri).put("peer", target)
             .put("name", meta.name).put("size", meta.size).toString()
+        _state.update { it.copy(resumable = true) }
         setOut { base(tid, Direction.SEND, target, meta.name, meta.size).copy(phase = Phase.CONNECTING) }
         acquireWake()
 
@@ -326,6 +328,7 @@ class TransferEngine(private val app: Context) {
                         Attempt.Done -> {
                             setOut { it.copy(phase = Phase.DONE, bytes = meta.size, speed = 0, message = "تحویل شد") }
                             prefs.outgoing = null
+                            _state.update { it.copy(resumable = false) }
                             prefs.completedCount = prefs.completedCount + 1
                             prefs.sentBytes = prefs.sentBytes + meta.size
                             return
@@ -345,6 +348,7 @@ class TransferEngine(private val app: Context) {
                 } catch (e: RejectedException) {
                     setOut { it.copy(phase = Phase.FAILED, message = e.message ?: "رد شد") }
                     prefs.outgoing = null
+                    _state.update { it.copy(resumable = false) }
                     return
                 } catch (e: IOException) {
                     lastError = e.message
@@ -359,6 +363,8 @@ class TransferEngine(private val app: Context) {
                 }
             }
             setOut { it.copy(phase = Phase.FAILED, message = lastError ?: "انتقال ناموفق بود") }
+            _state.update { it.copy(resumable = false) }
+            prefs.outgoing = null
         } catch (e: Throwable) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             setOut { it.copy(phase = Phase.FAILED, message = e.message ?: "خطای نامشخص") }

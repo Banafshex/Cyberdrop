@@ -63,6 +63,7 @@ fun CyberdropRoot(engine: TransferEngine) {
                         maxBytes = engine.prefs.maxBytes,
                         describe = { uri -> engine.describe(uri) },
                         onSend = { uri, id -> engine.sendFile(uri, id) },
+                        onResumeLast = { engine.resendLast() },
                         onCancel = { engine.cancel() },
                         onDismiss = { engine.dismissFinished() },
                         onBack = { dest = Dest.HOME },

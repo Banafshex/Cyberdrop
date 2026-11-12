@@ -66,6 +66,7 @@ data class EngineState(
     val request: IncomingRequest? = null,
     val files: List<StoredFile> = emptyList(),
     val log: List<String> = emptyList(),
+    val resumable: Boolean = false,
 ) {
     val busy: Boolean get() = outgoing?.active == true || incoming?.active == true
 }
