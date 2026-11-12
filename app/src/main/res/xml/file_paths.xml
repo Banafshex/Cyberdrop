@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-files-path name="cyberdrop_ext" path="Cyberdrop/" />
+    <files-path name="cyberdrop_int" path="Cyberdrop/" />
+    <external-files-path name="cyberdrop_root" path="." />
+</paths>
