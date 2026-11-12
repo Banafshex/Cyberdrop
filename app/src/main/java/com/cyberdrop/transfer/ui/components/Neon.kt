@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cyberdrop.transfer.ui.theme.Cyber
 import com.cyberdrop.transfer.ui.theme.Mono
+import com.cyberdrop.transfer.ui.theme.Vazir
 import com.cyberdrop.transfer.ui.theme.Type
 
 /** پس‌زمینهٔ شبکه‌ای + خط اسکن متحرک + وینیت. */
@@ -129,9 +130,8 @@ fun Label(text: String, color: Color = Cyber.TextDim, modifier: Modifier = Modif
         Text(
             " " + text,
             color = color,
-            fontFamily = Mono,
+            fontFamily = Vazir,
             fontSize = Type.tiny,
-            letterSpacing = 2.sp,
         )
     }
 }
@@ -141,9 +141,8 @@ fun SectionTitle(text: String, color: Color = Cyber.TextDim, modifier: Modifier 
     Text(
         text,
         color = color,
-        fontFamily = Mono,
+        fontFamily = Vazir,
         fontSize = Type.small,
-        letterSpacing = 3.sp,
         modifier = modifier,
     )
 }
@@ -163,7 +162,6 @@ fun GlitchTitle(text: String, color: Color = Cyber.Cyan, size: TextUnit = Type.t
             color = Cyber.Magenta.copy(alpha = 0.30f),
             fontFamily = Mono,
             fontSize = size,
-            letterSpacing = 4.sp,
             modifier = Modifier.offset(x = (1 + 2 * shift).dp),
         )
         Text(
@@ -171,10 +169,9 @@ fun GlitchTitle(text: String, color: Color = Cyber.Cyan, size: TextUnit = Type.t
             color = Cyber.Cyan.copy(alpha = 0.30f),
             fontFamily = Mono,
             fontSize = size,
-            letterSpacing = 4.sp,
             modifier = Modifier.offset(x = (-1 - 2 * shift).dp),
         )
-        Text(text, color = color, fontFamily = Mono, fontSize = size, letterSpacing = 4.sp)
+        Text(text, color = color, fontFamily = Mono, fontSize = size)
     }
 }
 
@@ -204,9 +201,8 @@ fun NeonButton(
         Text(
             text,
             color = if (enabled) accent else Cyber.TextFaint,
-            fontFamily = Mono,
+            fontFamily = Vazir,
             fontSize = 15.sp,
-            letterSpacing = 2.sp,
             textAlign = TextAlign.Center,
         )
     }
@@ -221,7 +217,7 @@ fun TinyButton(text: String, accent: Color = Cyber.CyanSoft, onClick: () -> Unit
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Text(text, color = accent, fontFamily = Mono, fontSize = Type.tiny, letterSpacing = 1.sp)
+        Text(text, color = accent, fontFamily = Vazir, fontSize = Type.tiny)
     }
 }
 
@@ -279,9 +275,9 @@ fun ProgressRing(
 @Composable
 fun KvRow(key: String, value: String, valueColor: Color = Cyber.Text, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(key, color = Cyber.TextDim, fontFamily = Mono, fontSize = Type.small, letterSpacing = 1.sp)
+        Text(key, color = Cyber.TextDim, fontFamily = Vazir, fontSize = Type.small)
         Box(Modifier.weight(1f))
-        Text(value, color = valueColor, fontFamily = Mono, fontSize = Type.small, letterSpacing = 1.sp)
+        Text(value, color = valueColor, fontFamily = Vazir, fontSize = Type.small)
     }
 }
 

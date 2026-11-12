@@ -40,6 +40,7 @@ import com.cyberdrop.transfer.ui.components.TinyButton
 import com.cyberdrop.transfer.ui.theme.Cyber
 import com.cyberdrop.transfer.ui.theme.Mono
 import com.cyberdrop.transfer.ui.theme.Type
+import com.cyberdrop.transfer.ui.theme.Vazir
 
 @Composable
 fun SendScreen(
@@ -49,6 +50,7 @@ fun SendScreen(
     describe: (Uri) -> FileMeta?,
     onSend: (Uri, String) -> Unit,
     onResumeLast: () -> Unit,
+    onDiscardResume: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
     onBack: () -> Unit,
@@ -68,7 +70,7 @@ fun SendScreen(
 
     val formatted = Identity.normalize(receiverRaw)
     val tooBig = picked != null && picked!!.size > maxBytes
-    val canSend = picked != null && formatted.isNotEmpty() && formatted != myId && !tooBig && state.outgoing?.active != true
+    val canSend = picked != null && formatted.isNotEmpty() && formatted != myId && !tooBig
     val busy = state.outgoing?.active == true
 
     Column(
@@ -80,25 +82,32 @@ fun SendScreen(
         ScreenHeader("ارسال فایل", onBack)
         Spacer(Modifier.height(18.dp))
 
-        state.outgoing?.let { t ->
-            TransferCard(t, onCancel = onCancel, onDismiss = onDismiss)
-            Spacer(Modifier.height(18.dp))
-        }
-
-        if (!busy && state.resumable) {
+        if (state.resumable && !busy) {
             NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.Amber) {
-                Label("انتقال نیمه‌کاره", color = Cyber.Amber)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Label("ارسال ناقص قبلی", color = Cyber.Amber)
+                    Spacer(Modifier.weight(1f))
+                    TinyButton("حذف", accent = Cyber.TextDim, onClick = onDiscardResume)
+                }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "ارسال قبلی کامل نشده است. با زدن دکمهٔ زیر از همان بایت ادامه می‌دهیم.",
+                    state.resumeName ?: "فایل",
+                    color = Cyber.Text,
+                    fontFamily = Vazir,
+                    fontSize = Type.body,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "${Fmt.bytes(state.resumeSize)}  ·  مقصد ${state.resumePeer ?: "—"}",
                     color = Cyber.TextDim,
                     fontFamily = Mono,
-                    fontSize = Type.small,
-                    lineHeight = 20.sp,
+                    fontSize = Type.tiny,
                 )
                 Spacer(Modifier.height(12.dp))
                 NeonButton(
-                    "ادامهٔ ارسال قبلی",
+                    "ادامهٔ همان ارسال",
                     Modifier.fillMaxWidth(),
                     accent = Cyber.Amber,
                     onClick = onResumeLast,
@@ -107,120 +116,115 @@ fun SendScreen(
             Spacer(Modifier.height(18.dp))
         }
 
-        if (!busy) {
-            SectionTitle("۰۱ // انتخاب فایل")
-            Spacer(Modifier.height(10.dp))
-            NeonPanel(Modifier.fillMaxWidth()) {
-                if (picked == null) {
+        SectionTitle("۰۱ // انتخاب فایل")
+        Spacer(Modifier.height(10.dp))
+        NeonPanel(Modifier.fillMaxWidth()) {
+            if (picked == null) {
+                Text(
+                    "هیچ فایلی انتخاب نشده است.",
+                    color = Cyber.TextDim,
+                    fontFamily = Vazir,
+                    fontSize = Type.small,
+                )
+            } else {
+                Text(
+                    picked!!.name,
+                    color = Cyber.Text,
+                    fontFamily = Vazir,
+                    fontSize = Type.body,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "هیچ فایلی انتخاب نشده است.",
-                        color = Cyber.TextDim,
+                        Fmt.bytes(picked!!.size),
+                        color = if (tooBig) Cyber.Magenta else Cyber.Cyan,
                         fontFamily = Mono,
                         fontSize = Type.small,
                     )
-                } else {
-                    Text(
-                        picked!!.name,
-                        color = Cyber.Text,
-                        fontFamily = Mono,
-                        fontSize = Type.body,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            Fmt.bytes(picked!!.size),
-                            color = if (tooBig) Cyber.Magenta else Cyber.Cyan,
-                            fontFamily = Mono,
-                            fontSize = Type.small,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Text(picked!!.mime, color = Cyber.TextFaint, fontFamily = Mono, fontSize = 9.sp)
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    NeonProgress(
-                        progress = if (maxBytes > 0) picked!!.size.toFloat() / maxBytes.toFloat() else 0f,
-                        accent = if (tooBig) Cyber.Magenta else Cyber.CyanSoft,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "سقف مجاز ارسال: ${Fmt.bytes(maxBytes)}",
-                        color = Cyber.TextFaint,
-                        fontFamily = Mono,
-                        fontSize = 9.sp,
-                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(picked!!.mime, color = Cyber.TextFaint, fontFamily = Mono, fontSize = 9.sp)
                 }
-                Spacer(Modifier.height(14.dp))
-                NeonButton(
-                    if (picked == null) "انتخاب فایل" else "انتخاب فایل دیگر",
-                    Modifier.fillMaxWidth(),
-                    accent = Cyber.Cyan,
-                    onClick = { picker.launch(arrayOf("*/*")) },
+                Spacer(Modifier.height(10.dp))
+                NeonProgress(
+                    progress = if (maxBytes > 0) picked!!.size.toFloat() / maxBytes.toFloat() else 0f,
+                    accent = if (tooBig) Cyber.Magenta else Cyber.CyanSoft,
                 )
-            }
-
-            if (tooBig) {
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    "حجم فایل از سقف مجاز بیشتر است. سقف را از تنظیمات بالا ببرید.",
-                    color = Cyber.Magenta,
-                    fontFamily = Mono,
+                    "سقف مجاز ارسال: ${Fmt.bytes(maxBytes)}",
+                    color = Cyber.TextFaint,
+                    fontFamily = Vazir,
                     fontSize = Type.tiny,
                 )
             }
-
-            Spacer(Modifier.height(20.dp))
-            SectionTitle("۰۲ // شناسهٔ گیرنده")
-            Spacer(Modifier.height(10.dp))
-            NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.CyanSoft) {
-                CyberField(
-                    value = receiverRaw,
-                    onValueChange = { v ->
-                        receiverRaw = v.uppercase().filter { it.isLetterOrDigit() }.take(10)
-                    },
-                    placeholder = "مثلاً 7F3A92K1",
-                    keyboardType = KeyboardType.Ascii,
-                    textSize = 18.sp,
-                    accent = if (formatted.isNotEmpty()) Cyber.Green else Cyber.Cyan,
-                )
-                Spacer(Modifier.height(8.dp))
-                Label(
-                    when {
-                        receiverRaw.isEmpty() -> "هشت نویسهٔ شناسهٔ گیرنده"
-                        formatted.isEmpty() -> "شناسه ناقص است (${receiverRaw.length}/8)"
-                        formatted == myId -> "این شناسهٔ خودتان است"
-                        else -> "مقصد: $formatted"
-                    },
-                    color = when {
-                        formatted.isEmpty() -> Cyber.Amber
-                        formatted == myId -> Cyber.Magenta
-                        else -> Cyber.Green
-                    },
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
             NeonButton(
-                "ارسال",
+                if (picked == null) "انتخاب فایل" else "انتخاب فایل دیگر",
                 Modifier.fillMaxWidth(),
                 accent = Cyber.Cyan,
-                filled = true,
-                enabled = canSend,
-                onClick = { picked?.let { onSend(Uri.parse(it.uri), receiverRaw) } },
+                onClick = { picker.launch(arrayOf("*/*")) },
             )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                "فایل مستقیماً روی کانال رمزنگاری‌شده به گوشی گیرنده می‌رود؛ اگر ارتباط قطع شود، از همان‌جا ادامه پیدا می‌کند.",
-                color = Cyber.TextFaint,
-                fontFamily = Mono,
-                fontSize = 9.sp,
-                lineHeight = 15.sp,
-            )
-        } else {
-            Spacer(Modifier.height(8.dp))
-            TinyButton("لغو و بازگشت", accent = Cyber.TextDim, onClick = onCancel)
         }
+
+        if (tooBig) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "حجم فایل از سقف مجاز بیشتر است. سقف را از تنظیمات بالا ببرید.",
+                color = Cyber.Magenta,
+                fontFamily = Vazir,
+                fontSize = Type.tiny,
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+        SectionTitle("۰۲ // شناسهٔ گیرنده")
+        Spacer(Modifier.height(10.dp))
+        NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.CyanSoft) {
+            CyberField(
+                value = receiverRaw,
+                onValueChange = { v ->
+                    receiverRaw = v.uppercase().filter { it.isLetterOrDigit() }.take(10)
+                },
+                placeholder = "مثلاً 7F3A92K1",
+                keyboardType = KeyboardType.Ascii,
+                textSize = 18.sp,
+                accent = if (formatted.isNotEmpty()) Cyber.Green else Cyber.Cyan,
+            )
+            Spacer(Modifier.height(8.dp))
+            Label(
+                when {
+                    receiverRaw.isEmpty() -> "هشت نویسهٔ شناسهٔ گیرنده"
+                    formatted.isEmpty() -> "شناسه ناقص است (${receiverRaw.length}/8)"
+                    formatted == myId -> "این شناسهٔ خودتان است"
+                    else -> "مقصد: $formatted"
+                },
+                color = when {
+                    formatted.isEmpty() -> Cyber.Amber
+                    formatted == myId -> Cyber.Magenta
+                    else -> Cyber.Green
+                },
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
+        NeonButton(
+            "شروع ارسال",
+            Modifier.fillMaxWidth(),
+            accent = Cyber.Cyan,
+            filled = true,
+            enabled = canSend,
+            onClick = { picked?.let { onSend(Uri.parse(it.uri), receiverRaw) } },
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "به‌محض زدن دکمه، صفحهٔ انتقال با نوار پیشرفت، درصد و سرعت باز می‌شود و تا پایان می‌توانید لغو کنید. اگر اینترنت قطع شود، ارسال از همان نقطه ادامه می‌یابد.",
+            color = Cyber.TextFaint,
+            fontFamily = Vazir,
+            fontSize = Type.tiny,
+            lineHeight = 18.sp,
+        )
         Spacer(Modifier.height(30.dp))
     }
 }
@@ -230,6 +234,6 @@ fun ScreenHeader(title: String, onBack: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         TinyButton("‹  بازگشت", accent = Cyber.TextDim, onClick = onBack)
         Spacer(Modifier.weight(1f))
-        Text(title, color = Cyber.Cyan, fontFamily = Mono, fontSize = Type.h1, letterSpacing = 2.sp)
+        Text(title, color = Cyber.Cyan, fontFamily = Vazir, fontSize = Type.h1)
     }
 }

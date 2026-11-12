@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cyberdrop.transfer.ui.theme.Cyber
 import com.cyberdrop.transfer.ui.theme.Mono
+import com.cyberdrop.transfer.ui.theme.Vazir
 import com.cyberdrop.transfer.ui.theme.Type
 
 @Composable
@@ -47,9 +48,8 @@ fun CyberField(
         enabled = enabled,
         textStyle = TextStyle(
             color = if (enabled) Cyber.Text else Cyber.TextFaint,
-            fontFamily = Mono,
+            fontFamily = Vazir,
             fontSize = textSize,
-            letterSpacing = 2.sp,
         ),
         cursorBrush = SolidColor(accent),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
@@ -67,9 +67,8 @@ fun CyberField(
                     Text(
                         placeholder,
                         color = Cyber.TextFaint,
-                        fontFamily = Mono,
+                        fontFamily = Vazir,
                         fontSize = textSize,
-                        letterSpacing = 1.sp,
                     )
                 }
                 inner()
@@ -117,9 +116,8 @@ fun ChoiceChip(text: String, selected: Boolean, accent: Color = Cyber.Cyan, onCl
         Text(
             text,
             color = if (selected) accent else Cyber.TextDim,
-            fontFamily = Mono,
+            fontFamily = Vazir,
             fontSize = Type.small,
-            letterSpacing = 1.sp,
         )
     }
 }

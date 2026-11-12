@@ -29,13 +29,16 @@ data class TransferUi(
     val attempt: Int = 1,
     val message: String? = null,
     val sha256: String? = null,
+    val durationMs: Long = 0L,
 ) {
     val progress: Float
         get() = if (size <= 0L) 0f else (bytes.toDouble() / size.toDouble()).toFloat().coerceIn(0f, 1f)
 
+    /** انتقال «در جریان» است (شامل حالتی که موتور خودش در حال تلاش مجدد است). */
     val active: Boolean
         get() = phase == Phase.CONNECTING || phase == Phase.WAITING_PEER ||
-            phase == Phase.WAITING_ACCEPT || phase == Phase.TRANSFERRING || phase == Phase.VERIFYING
+            phase == Phase.WAITING_ACCEPT || phase == Phase.TRANSFERRING ||
+            phase == Phase.VERIFYING || phase == Phase.INTERRUPTED
 }
 
 data class IncomingRequest(
@@ -67,6 +70,9 @@ data class EngineState(
     val files: List<StoredFile> = emptyList(),
     val log: List<String> = emptyList(),
     val resumable: Boolean = false,
+    val resumeName: String? = null,
+    val resumeSize: Long = 0L,
+    val resumePeer: String? = null,
 ) {
     val busy: Boolean get() = outgoing?.active == true || incoming?.active == true
 }
