@@ -3,40 +3,20 @@ on:
   workflow_dispatch:
   push:
     branches: ["**"]
-    paths: [".github/workflows/probe.yml"]
+    paths: [".github/workflows/probe.yml", ".ci-tools/**"]
 permissions:
   contents: write
+  issues: write
+env:
+  REPO: ${{ github.repository }}
+  CI_ISSUE: "1"
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe maven metadata
-        run: |
-          probe() {
-            echo "### $1"
-            curl -s --max-time 25 "$1" > /tmp/raw.xml || echo "(curl failed)"
-            grep -o '<version>[^<]*</version>' /tmp/raw.xml | tail -12 | tr '\n' ' '
-            echo
-            grep -o '<\(latest\|release\)>[^<]*</\1>' /tmp/raw.xml
-            echo
-          }
-          {
-          M=https://repo1.maven.org/maven2
-          G=https://dl.google.com/dl/android/maven2
-          probe $M/io/github/webrtc-sdk/android/maven-metadata.xml
-          probe $M/org/webrtc/google-webrtc/maven-metadata.xml
-          probe $M/com/dafruits/webrtc/maven-metadata.xml
-          probe $M/org/eclipse/paho/org.eclipse.paho.client.mqttv3/maven-metadata.xml
-          probe $M/org/jetbrains/kotlinx/kotlinx-coroutines-android/maven-metadata.xml
-          probe $G/androidx/compose/compose-bom/maven-metadata.xml
-          probe $G/com/android/tools/build/gradle/maven-metadata.xml
-          probe $G/androidx/activity/activity-compose/maven-metadata.xml
-          probe $G/androidx/lifecycle/lifecycle-runtime-compose/maven-metadata.xml
-          echo "=== sdk"
-          ls /usr/local/lib/android/sdk/platforms /usr/local/lib/android/sdk/build-tools 2>&1
-          java -version 2>&1
-          } > probe.txt 2>&1
-          mkdir -p .ci && cp probe.txt .ci/probe.txt
-          git config user.name "cyberdrop-ci"; git config user.email "ci@users.noreply.github.com"
-          git add -f .ci/probe.txt && git commit -q -m "ci: probe results [skip ci]" && git push origin HEAD:${GITHUB_REF_NAME}
+      - name: run
+        run: bash .ci-tools/probe.sh > /tmp/out.txt 2>&1 || echo "STEP FAILED rc=$?" >> /tmp/out.txt
+      - name: report
+        if: always()
+        run: python3 .ci-tools/report.py /tmp/out.txt
