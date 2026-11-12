@@ -25,6 +25,7 @@ import com.cyberdrop.transfer.ui.screens.HomeScreen
 import com.cyberdrop.transfer.ui.screens.ReceiveScreen
 import com.cyberdrop.transfer.ui.screens.SendScreen
 import com.cyberdrop.transfer.ui.screens.SettingsScreen
+import com.cyberdrop.transfer.ui.screens.TransferBanner
 import com.cyberdrop.transfer.ui.screens.TransferScreen
 
 enum class Dest { HOME, SEND, RECEIVE, SETTINGS }
@@ -33,6 +34,7 @@ enum class Dest { HOME, SEND, RECEIVE, SETTINGS }
 fun CyberdropRoot(engine: TransferEngine) {
     val state by engine.state.collectAsStateWithLifecycle()
     var dest by remember { mutableStateOf(Dest.HOME) }
+    var minimized by remember { mutableStateOf<String?>(null) }
     val view = LocalView.current
 
     // هر انتقالی (در جریان یا تازه تمام‌شده) صفحهٔ اختصاصی خودش را نشان می‌دهد.
@@ -58,26 +60,31 @@ fun CyberdropRoot(engine: TransferEngine) {
     }
 
     BackHandler(enabled = focus != null || dest != Dest.HOME) {
-        if (focus != null) {
-            if (!focus.active) engine.dismissFinished()
-        } else {
-            dest = Dest.HOME
+        when {
+            focus == null -> dest = Dest.HOME
+            focus.active && state.request == null -> minimized = focus.tid
+            !focus.active -> engine.dismissFinished()
         }
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         CyberBackground {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
-                if (focus != null) {
+                val showing = focus?.takeIf { minimized != it.tid }
+                if (showing != null) {
                     TransferScreen(
-                        t = focus,
+                        t = showing,
                         request = state.request,
                         onAccept = { engine.acceptIncoming() },
                         onReject = { engine.rejectIncoming() },
                         onCancel = { engine.cancel() },
                         onDismiss = { engine.dismissFinished() },
+                        onMinimize = { minimized = showing.tid },
                     )
                 } else {
+                    if (focus != null) {
+                        TransferBanner(focus) { minimized = null }
+                    }
                     when (dest) {
                         Dest.HOME -> HomeScreen(
                             state = state,

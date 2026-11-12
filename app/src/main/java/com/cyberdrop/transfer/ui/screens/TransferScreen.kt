@@ -1,6 +1,7 @@
 package com.cyberdrop.transfer.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ fun TransferScreen(
     onReject: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
+    onMinimize: () -> Unit,
 ) {
     val accent = phaseColor(t)
     val sending = t.direction == Direction.SEND
@@ -90,6 +92,10 @@ fun TransferScreen(
                 fontFamily = Mono,
                 fontSize = Type.tiny,
             )
+            if (request == null && t.active) {
+                Spacer(Modifier.width(10.dp))
+                MiniButton("▾") { onMinimize() }
+            }
         }
         Spacer(Modifier.height(22.dp))
 
@@ -304,4 +310,53 @@ fun stageIndex(t: TransferUi): Int = when (t.phase) {
     Phase.TRANSFERRING, Phase.INTERRUPTED -> 2
     Phase.VERIFYING, Phase.DONE -> 3
     else -> 0
+}
+
+@Composable
+private fun MiniButton(text: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(28.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .border(1.dp, Cyber.CyanDim, RoundedCornerShape(2.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = Cyber.TextDim, fontFamily = Mono, fontSize = 13.sp)
+    }
+}
+
+/** نوار باریک که وقتی صفحهٔ انتقال کوچک شده، وضعیت را نشان می‌دهد. */
+@Composable
+fun TransferBanner(t: TransferUi, onOpen: () -> Unit) {
+    val accent = phaseColor(t)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(accent.copy(alpha = 0.08f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(2.dp))
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (t.direction == Direction.SEND) "↑" else "↓",
+            color = accent,
+            fontFamily = Mono,
+            fontSize = 15.sp,
+        )
+        Spacer(Modifier.width(8.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                phaseLabel(t) + " · " + (t.progress * 100).toInt() + "%",
+                color = accent,
+                fontFamily = Vazir,
+                fontSize = Type.tiny,
+            )
+            Spacer(Modifier.height(4.dp))
+            NeonProgress(t.progress, accent)
+        }
+        Spacer(Modifier.width(10.dp))
+        Text("باز کردن", color = Cyber.TextDim, fontFamily = Vazir, fontSize = Type.tiny)
+    }
 }
