@@ -587,11 +587,13 @@ class TransferEngine(private val app: Context) {
                 val size = metaMsg.optLong("size", 0L)
                 if (size <= 0L) {
                     sendText(s, JSONObject().put("t", "reject"))
+                    setIn { it.copy(phase = Phase.FAILED, message = "فایل نامعتبر است") }
                     return@launch
                 }
                 if (size > prefs.maxBytes) {
                     sendText(s, JSONObject().put("t", "reject"))
                     note("گیرنده: حجم بیش از سقف مجاز")
+                    setIn { it.copy(phase = Phase.FAILED, message = "حجم فایل از سقف مجاز بیشتر است") }
                     return@launch
                 }
 
@@ -602,6 +604,7 @@ class TransferEngine(private val app: Context) {
                 if (!accepted) {
                     sendText(s, JSONObject().put("t", "reject"))
                     _state.update { it.copy(request = null) }
+                    setIn { it.copy(phase = Phase.CANCELLED, message = "دریافت رد شد") }
                     note("دریافت رد شد")
                     return@launch
                 }
@@ -615,6 +618,20 @@ class TransferEngine(private val app: Context) {
                 setIn { it.copy(phase = Phase.FAILED, message = e.message) }
             } finally {
                 if (cur === s) closeSession()
+                _state.update { st ->
+                    val inc = st.incoming
+                    if (inc != null && inc.tid == tid && (inc.phase == Phase.CONNECTING || inc.phase == Phase.WAITING_ACCEPT)) {
+                        st.copy(
+                            incoming = inc.copy(
+                                phase = Phase.FAILED,
+                                message = "دریافت انجام نشد — فرستنده را دوباره بررسی کنید",
+                            ),
+                            request = null,
+                        )
+                    } else {
+                        st
+                    }
+                }
             }
         }
     }
