@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cyberdrop.transfer.core.Fmt
@@ -30,6 +31,7 @@ import com.cyberdrop.transfer.ui.components.TinyButton
 import com.cyberdrop.transfer.ui.theme.Cyber
 import com.cyberdrop.transfer.ui.theme.Mono
 import com.cyberdrop.transfer.ui.theme.Type
+import com.cyberdrop.transfer.ui.theme.Vazir
 
 @Composable
 fun HomeScreen(
@@ -37,11 +39,7 @@ fun HomeScreen(
     myId: String,
     onSend: () -> Unit,
     onReceive: () -> Unit,
-    onAcceptRequest: () -> Unit,
-    onRejectRequest: () -> Unit,
     onSettings: () -> Unit,
-    onCancel: () -> Unit,
-    onDismiss: () -> Unit,
 ) {
     val clip = LocalClipboardManager.current
     Column(
@@ -54,28 +52,25 @@ fun HomeScreen(
             GlitchTitle("CYBERDROP")
             Spacer(Modifier.weight(1f))
             StatusDot(online = state.online)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(7.dp))
             Text(
                 if (state.online) "ONLINE" else "OFFLINE",
                 color = if (state.online) Cyber.Green else Cyber.Magenta,
                 fontFamily = Mono,
-                fontSize = Type.tiny,
-                letterSpacing = 2.sp,
+                fontSize = 9.sp,
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             TinyButton("تنظیمات", accent = Cyber.TextDim, onClick = onSettings)
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            "انتقال فایل نقطه‌به‌نقطه // بدون سرور // رمزنگاری‌شده",
+            "انتقال فایل نقطه‌به‌نقطه · بدون سرور · رمزنگاری‌شده",
             color = Cyber.TextFaint,
-            fontFamily = Mono,
+            fontFamily = Vazir,
             fontSize = Type.tiny,
-            letterSpacing = 1.sp,
         )
         Spacer(Modifier.height(22.dp))
 
-        // کارت شناسه
         NeonPanel(Modifier.fillMaxWidth()) {
             Label("شناسهٔ شما")
             Spacer(Modifier.height(10.dp))
@@ -84,52 +79,37 @@ fun HomeScreen(
                     myId,
                     color = Cyber.Cyan,
                     fontFamily = Mono,
-                    fontSize = 26.sp,
-                    letterSpacing = 4.sp,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.weight(1f))
-                TinyButton("کپی") {
-                    clip.setText(AnnotatedString(myId))
-                }
+                TinyButton("کپی") { clip.setText(AnnotatedString(myId)) }
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                "این شناسه را در اولین اجرا ساختیم. آن را به فرستنده بدهید تا فایل را برایتان بفرستد.",
+                "این شناسه از اولین اجرا ساخته شده و ثابت می‌ماند. آن را به فرستنده بدهید.",
                 color = Cyber.TextDim,
-                fontFamily = Mono,
+                fontFamily = Vazir,
                 fontSize = Type.small,
-                lineHeight = 20.sp,
+                lineHeight = 21.sp,
             )
         }
 
         Spacer(Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             NeonButton(
-                "▸  ارسال فایل",
+                "↑  ارسال فایل",
                 Modifier.weight(1f),
                 accent = Cyber.Cyan,
                 filled = true,
                 onClick = onSend,
             )
             NeonButton(
-                "◂  دریافت",
+                "↓  دریافت",
                 Modifier.weight(1f),
                 accent = Cyber.CyanSoft,
                 onClick = onReceive,
             )
-        }
-
-        state.outgoing?.let { t ->
-            Spacer(Modifier.height(16.dp))
-            TransferCard(t, onCancel = onCancel, onDismiss = onDismiss)
-        }
-        state.incoming?.let { t ->
-            Spacer(Modifier.height(16.dp))
-            TransferCard(t, onCancel = onCancel, onDismiss = onDismiss)
-        }
-        state.request?.let { req ->
-            Spacer(Modifier.height(16.dp))
-            IncomingRequestCard(req, onAccept = onAcceptRequest, onReject = onRejectRequest)
         }
 
         Spacer(Modifier.height(22.dp))
@@ -138,8 +118,8 @@ fun HomeScreen(
         NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.CyanSoft) {
             Row {
                 Column(Modifier.weight(1f)) {
-                    Text("انتقال‌های موفق", color = Cyber.TextDim, fontFamily = Mono, fontSize = Type.tiny)
-                    Spacer(Modifier.height(4.dp))
+                    Text("فایل‌های دریافت‌شده", color = Cyber.TextDim, fontFamily = Vazir, fontSize = Type.tiny)
+                    Spacer(Modifier.height(5.dp))
                     Text(
                         state.files.count { it.done }.toString(),
                         color = Cyber.Cyan,
@@ -148,8 +128,8 @@ fun HomeScreen(
                     )
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("حجم دریافتی", color = Cyber.TextDim, fontFamily = Mono, fontSize = Type.tiny)
-                    Spacer(Modifier.height(4.dp))
+                    Text("حجم دریافتی", color = Cyber.TextDim, fontFamily = Vazir, fontSize = Type.tiny)
+                    Spacer(Modifier.height(5.dp))
                     Text(
                         Fmt.bytes(state.files.filter { it.done }.sumOf { it.size }),
                         color = Cyber.Cyan,
@@ -169,23 +149,22 @@ fun HomeScreen(
                     Text(
                         "› $line",
                         color = if (i == 0) Cyber.TextDim else Cyber.TextFaint,
-                        fontFamily = Mono,
+                        fontFamily = Vazir,
                         fontSize = Type.tiny,
                         maxLines = 2,
-                        lineHeight = 16.sp,
+                        lineHeight = 17.sp,
                     )
                     Spacer(Modifier.height(3.dp))
                 }
             }
         }
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(26.dp))
         Text(
             "CYBERDROP 1.0  ·  WebRTC DataChannel + public rendezvous",
             color = Cyber.TextFaint,
             fontFamily = Mono,
-            fontSize = 9.sp,
-            letterSpacing = 1.sp,
+            fontSize = 8.sp,
         )
         Spacer(Modifier.height(24.dp))
     }

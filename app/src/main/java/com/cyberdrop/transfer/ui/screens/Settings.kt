@@ -30,6 +30,7 @@ import com.cyberdrop.transfer.ui.components.NeonPanel
 import com.cyberdrop.transfer.ui.components.SectionTitle
 import com.cyberdrop.transfer.ui.theme.Cyber
 import com.cyberdrop.transfer.ui.theme.Mono
+import com.cyberdrop.transfer.ui.theme.Vazir
 import com.cyberdrop.transfer.ui.theme.Type
 
 @Composable
@@ -57,7 +58,7 @@ fun SettingsScreen(engine: TransferEngine, myId: String, onBack: () -> Unit) {
             Text(
                 "سقف مجاز برای هر فایل: ${Fmt.bytes(maxBytes)}",
                 color = Cyber.Text,
-                fontFamily = Mono,
+                fontFamily = Vazir,
                 fontSize = Type.body,
             )
             Spacer(Modifier.height(12.dp))
@@ -77,7 +78,7 @@ fun SettingsScreen(engine: TransferEngine, myId: String, onBack: () -> Unit) {
             Text(
                 "فایل بزرگ‌تر از این مقدار قابل ارسال نیست (هم فرستنده و هم گیرنده همین سقف را دارند).",
                 color = Cyber.TextFaint,
-                fontFamily = Mono,
+                fontFamily = Vazir,
                 fontSize = 9.sp,
                 lineHeight = 15.sp,
             )
@@ -105,12 +106,12 @@ fun SettingsScreen(engine: TransferEngine, myId: String, onBack: () -> Unit) {
         NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.CyanSoft) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("پذیرش خودکار فایل", color = Cyber.Text, fontFamily = Mono, fontSize = Type.small)
+                    Text("پذیرش خودکار فایل", color = Cyber.Text, fontFamily = Vazir, fontSize = Type.small)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "اگر روشن باشد، بدون پرسیدن تأیید فایل دریافت می‌شود.",
                         color = Cyber.TextFaint,
-                        fontFamily = Mono,
+                        fontFamily = Vazir,
                         fontSize = 9.sp,
                     )
                 }
@@ -131,7 +132,7 @@ fun SettingsScreen(engine: TransferEngine, myId: String, onBack: () -> Unit) {
             Text(
                 "در بعضی شبکه‌های موبایل (NAT متقارن) ارتباط مستقیم برقرار نمی‌شود. اگر TURN رایگان دارید، نشانی آن را وارد کنید تا به عنوان مسیر پشتیبان استفاده شود.",
                 color = Cyber.TextFaint,
-                fontFamily = Mono,
+                fontFamily = Vazir,
                 fontSize = 9.sp,
                 lineHeight = 15.sp,
             )
@@ -171,14 +172,14 @@ fun SettingsScreen(engine: TransferEngine, myId: String, onBack: () -> Unit) {
         SectionTitle("درباره")
         Spacer(Modifier.height(10.dp))
         NeonPanel(Modifier.fillMaxWidth(), accent = Cyber.CyanSoft) {
-            Text("CYBERDROP 1.0", color = Cyber.Cyan, fontFamily = Mono, fontSize = Type.body, letterSpacing = 2.sp)
+            Text("CYBERDROP 1.0", color = Cyber.Cyan, fontFamily = Mono, fontSize = Type.body)
             Spacer(Modifier.height(8.dp))
-            Text("شناسهٔ دستگاه: $myId", color = Cyber.TextDim, fontFamily = Mono, fontSize = Type.small)
+            Text("شناسهٔ دستگاه: $myId", color = Cyber.TextDim, fontFamily = Vazir, fontSize = Type.small)
             Spacer(Modifier.height(8.dp))
             Text(
                 "انتقال با WebRTC DataChannel و رمزنگاری DTLS انجام می‌شود. برای رد و بدل کردن اطلاعات اتصال، از بروکرهای عمومی و رایگان MQTT استفاده می‌کنیم؛ هیچ سروری برای اجرا لازم نیست و محتوای فایل هرگز از آن‌ها عبور نمی‌کند.",
                 color = Cyber.TextFaint,
-                fontFamily = Mono,
+                fontFamily = Vazir,
                 fontSize = 9.sp,
                 lineHeight = 16.sp,
             )

@@ -7,17 +7,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +37,7 @@ import com.cyberdrop.transfer.ui.components.TinyButton
 import com.cyberdrop.transfer.ui.theme.Cyber
 import com.cyberdrop.transfer.ui.theme.Mono
 import com.cyberdrop.transfer.ui.theme.Type
+import com.cyberdrop.transfer.ui.theme.Vazir
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,14 +48,15 @@ fun ReceiveScreen(
     state: EngineState,
     myId: String,
     onRetry: () -> Unit,
-    onAccept: () -> Unit,
-    onReject: () -> Unit,
-    onCancel: () -> Unit,
-    onDismiss: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val ctx = LocalContext.current
     val clip = LocalClipboardManager.current
+    val ctx = LocalContext.current
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
     Column(
         Modifier
             .fillMaxWidth()
@@ -68,14 +73,19 @@ fun ReceiveScreen(
                 Text(
                     if (state.online) "آمادهٔ دریافت" else "آفلاین",
                     color = if (state.online) Cyber.Green else Cyber.Magenta,
-                    fontFamily = Mono,
+                    fontFamily = Vazir,
                     fontSize = Type.small,
-                    letterSpacing = 2.sp,
                 )
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(myId, color = Cyber.Cyan, fontFamily = Mono, fontSize = 20.sp, letterSpacing = 3.sp)
+                Text(
+                    myId,
+                    color = Cyber.Cyan,
+                    fontFamily = Mono,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Spacer(Modifier.weight(1f))
                 TinyButton("کپی") { clip.setText(AnnotatedString(myId)) }
             }
@@ -83,25 +93,17 @@ fun ReceiveScreen(
             Text(
                 state.statusText + if (state.broker.isNotEmpty() && state.online) " · ${state.broker}" else "",
                 color = Cyber.TextDim,
-                fontFamily = Mono,
+                fontFamily = Vazir,
                 fontSize = Type.tiny,
             )
             if (!state.online) {
                 Spacer(Modifier.height(12.dp))
                 NeonButton("تلاش دوباره برای اتصال", Modifier.fillMaxWidth(), accent = Cyber.Amber, onClick = onRetry)
             }
-            Spacer(Modifier.height(10.dp))
-            Label("برنامه باید باز بماند تا فایل دریافت شود")
-        }
-
-        state.request?.let { req ->
-            Spacer(Modifier.height(16.dp))
-            IncomingRequestCard(req, onAccept = onAccept, onReject = onReject)
-        }
-
-        state.incoming?.let { t ->
-            Spacer(Modifier.height(16.dp))
-            TransferCard(t, onCancel = onCancel, onDismiss = onDismiss)
+            Spacer(Modifier.height(12.dp))
+            Label("برای دریافت، همین صفحه یا صفحهٔ اصلی کافی است")
+            Spacer(Modifier.height(4.dp))
+            Label("به‌محض رسیدن پیشنهاد، صفحهٔ انتقال خودکار باز می‌شود")
         }
 
         Spacer(Modifier.height(22.dp))
@@ -112,16 +114,14 @@ fun ReceiveScreen(
                 Text(
                     "هنوز فایلی دریافت نشده است.",
                     color = Cyber.TextDim,
-                    fontFamily = Mono,
+                    fontFamily = Vazir,
                     fontSize = Type.small,
                 )
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 state.files.take(30).forEach { f ->
-                    FileRow(f) {
-                        shareFile(ctx, f)
-                    }
+                    FileRow(f) { shareFile(ctx, f) }
                 }
             }
         }
@@ -136,7 +136,7 @@ private fun FileRow(f: StoredFile, onShare: () -> Unit) {
         Text(
             f.name,
             color = Cyber.Text,
-            fontFamily = Mono,
+            fontFamily = Vazir,
             fontSize = Type.small,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -144,7 +144,7 @@ private fun FileRow(f: StoredFile, onShare: () -> Unit) {
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                Fmt.bytes(f.size) + "  ·  " + timeLabel(f.timestamp) + "  ·  " + f.from,
+                Fmt.bytes(f.size) + " · " + timeLabel(f.timestamp),
                 color = Cyber.TextFaint,
                 fontFamily = Mono,
                 fontSize = 9.sp,

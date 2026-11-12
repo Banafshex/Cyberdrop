@@ -1,9 +1,12 @@
 package com.cyberdrop.transfer.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cyberdrop.transfer.R
 
 /**
  * پالت سایبرپانک: مشکی مطلق، مشکی-آبی، یک رنگ نئون اصلی (فیروزه‌ای) و
@@ -31,6 +34,15 @@ object Cyber {
     val Radius = 3.dp
 }
 
+/** فونت فارسی برنامه (Vazirmatn) — چهار وزن. */
+val Vazir = FontFamily(
+    Font(R.font.vazirmatn_regular, FontWeight.Normal),
+    Font(R.font.vazirmatn_medium, FontWeight.Medium),
+    Font(R.font.vazirmatn_semibold, FontWeight.SemiBold),
+    Font(R.font.vazirmatn_bold, FontWeight.Bold),
+)
+
+/** برای متن‌های لاتین/شناسه/عدد، حس HUD می‌دهد. */
 val Mono = FontFamily.Monospace
 
 object Type {

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
@@ -90,7 +91,8 @@ class TransferEngine(private val app: Context) {
     private var acceptSignal: CompletableDeferred<Boolean>? = null
 
     init {
-        _state.update { it.copy(files = loadFiles(), resumable = prefs.outgoing != null) }
+        _state.update { it.copy(files = loadFiles()) }
+        refreshResume()
     }
 
     // ------------------------------------------------------------------ عمومی
@@ -152,6 +154,10 @@ class TransferEngine(private val app: Context) {
                 if (s != null) sendText(s, JSONObject().put("t", "cancel"))
             } catch (_: Throwable) {
             }
+            try {
+                if (s != null) signaling?.publish(s.peer, "cancel", tid = s.tid)
+            } catch (_: Throwable) {
+            }
             sendJob?.cancel()
             recvJob?.cancel()
             closeSession()
@@ -165,7 +171,7 @@ class TransferEngine(private val app: Context) {
                 )
             }
             prefs.outgoing = null
-            _state.update { it.copy(resumable = false) }
+            refreshResume()
             releaseWake()
         }
     }
@@ -183,6 +189,7 @@ class TransferEngine(private val app: Context) {
             it.copy(
                 outgoing = it.outgoing?.takeIf { o -> o.active },
                 incoming = it.incoming?.takeIf { o -> o.active },
+                request = null,
             )
         }
     }
@@ -192,6 +199,29 @@ class TransferEngine(private val app: Context) {
         runCatching {
             val o = JSONObject(raw)
             sendFile(Uri.parse(o.getString("uri")), o.getString("peer"), o.getString("tid"))
+        }
+    }
+
+    /** رکورد ارسال نیمه‌کاره را دور می‌ریزد. */
+    fun discardResume() {
+        prefs.outgoing = null
+        refreshResume()
+    }
+
+    private fun refreshResume() {
+        val raw = prefs.outgoing
+        if (raw == null) {
+            _state.update { it.copy(resumable = false, resumeName = null, resumeSize = 0L, resumePeer = null) }
+            return
+        }
+        val o = runCatching { JSONObject(raw) }.getOrNull()
+        _state.update {
+            it.copy(
+                resumable = true,
+                resumeName = o?.optString("name"),
+                resumeSize = o?.optLong("size") ?: 0L,
+                resumePeer = o?.optString("peer"),
+            )
         }
     }
 
@@ -258,6 +288,13 @@ class TransferEngine(private val app: Context) {
                 sendJob?.cancel()
                 recvJob?.cancel()
                 closeSession()
+                _state.update {
+                    it.copy(
+                        outgoing = it.outgoing?.let { o -> o.copy(phase = Phase.CANCELLED, message = "لغو شد") },
+                        incoming = it.incoming?.let { o -> o.copy(phase = Phase.CANCELLED, message = "لغو شد") },
+                        request = null,
+                    )
+                }
             }
         }
     }
@@ -305,12 +342,13 @@ class TransferEngine(private val app: Context) {
         prefs.outgoing = JSONObject()
             .put("tid", tid).put("uri", uri).put("peer", target)
             .put("name", meta.name).put("size", meta.size).toString()
-        _state.update { it.copy(resumable = true) }
+        refreshResume()
         setOut { base(tid, Direction.SEND, target, meta.name, meta.size).copy(phase = Phase.CONNECTING) }
         acquireWake()
 
         var attempt = 0
         var lastError: String? = null
+        val curStarted = System.currentTimeMillis()
         try {
             while (attempt < MAX_ATTEMPTS) {
                 attempt++
@@ -326,9 +364,19 @@ class TransferEngine(private val app: Context) {
                     val r = senderAttempt(tid, target, meta, attempt)
                     when (r) {
                         Attempt.Done -> {
-                            setOut { it.copy(phase = Phase.DONE, bytes = meta.size, speed = 0, message = "تحویل شد") }
+                            val dur = (System.currentTimeMillis() - curStarted).coerceAtLeast(1)
+                            val avg = meta.size * 1000L / dur
+                            setOut {
+                                it.copy(
+                                    phase = Phase.DONE,
+                                    bytes = meta.size,
+                                    speed = avg,
+                                    durationMs = dur,
+                                    message = "تحویل شد",
+                                )
+                            }
                             prefs.outgoing = null
-                            _state.update { it.copy(resumable = false) }
+                            refreshResume()
                             prefs.completedCount = prefs.completedCount + 1
                             prefs.sentBytes = prefs.sentBytes + meta.size
                             return
@@ -348,7 +396,7 @@ class TransferEngine(private val app: Context) {
                 } catch (e: RejectedException) {
                     setOut { it.copy(phase = Phase.FAILED, message = e.message ?: "رد شد") }
                     prefs.outgoing = null
-                    _state.update { it.copy(resumable = false) }
+                    refreshResume()
                     return
                 } catch (e: IOException) {
                     lastError = e.message
@@ -363,8 +411,8 @@ class TransferEngine(private val app: Context) {
                 }
             }
             setOut { it.copy(phase = Phase.FAILED, message = lastError ?: "انتقال ناموفق بود") }
-            _state.update { it.copy(resumable = false) }
             prefs.outgoing = null
+            refreshResume()
         } catch (e: Throwable) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             setOut { it.copy(phase = Phase.FAILED, message = e.message ?: "خطای نامشخص") }
@@ -465,7 +513,14 @@ class TransferEngine(private val app: Context) {
                     lastUi = now
                     s.sentBytes = sent
                     val sp = speed
-                    setOut { it.copy(bytes = sent, speed = sp, phase = Phase.TRANSFERRING) }
+                    val shown = if (s.peerAck >= 0L) minOf(sent, s.peerAck) else sent
+                    setOut {
+                        it.copy(
+                            bytes = maxOf(it.bytes, shown),
+                            speed = sp,
+                            phase = Phase.TRANSFERRING,
+                        )
+                    }
                 }
             }
         } finally {
@@ -500,6 +555,19 @@ class TransferEngine(private val app: Context) {
         cur = s
         recvJob = scope.launch {
             try {
+                _state.update {
+                    it.copy(
+                        incoming = TransferUi(
+                            tid = tid,
+                            direction = Direction.RECEIVE,
+                            peerId = from,
+                            fileName = "فایل ورودی",
+                            size = 0L,
+                            phase = Phase.CONNECTING,
+                            message = "برقراری کانال امن…",
+                        )
+                    )
+                }
                 signaling?.publish(from, "ack", tid = tid)
                 val pc = createPeer(s)
                 setRemote(pc, SessionDescription(SessionDescription.Type.OFFER, sdp))
@@ -519,11 +587,13 @@ class TransferEngine(private val app: Context) {
                 val size = metaMsg.optLong("size", 0L)
                 if (size <= 0L) {
                     sendText(s, JSONObject().put("t", "reject"))
+                    setIn { it.copy(phase = Phase.FAILED, message = "فایل نامعتبر است") }
                     return@launch
                 }
                 if (size > prefs.maxBytes) {
                     sendText(s, JSONObject().put("t", "reject"))
                     note("گیرنده: حجم بیش از سقف مجاز")
+                    setIn { it.copy(phase = Phase.FAILED, message = "حجم فایل از سقف مجاز بیشتر است") }
                     return@launch
                 }
 
@@ -534,6 +604,7 @@ class TransferEngine(private val app: Context) {
                 if (!accepted) {
                     sendText(s, JSONObject().put("t", "reject"))
                     _state.update { it.copy(request = null) }
+                    setIn { it.copy(phase = Phase.CANCELLED, message = "دریافت رد شد") }
                     note("دریافت رد شد")
                     return@launch
                 }
@@ -547,6 +618,20 @@ class TransferEngine(private val app: Context) {
                 setIn { it.copy(phase = Phase.FAILED, message = e.message) }
             } finally {
                 if (cur === s) closeSession()
+                _state.update { st ->
+                    val inc = st.incoming
+                    if (inc != null && inc.tid == tid && (inc.phase == Phase.CONNECTING || inc.phase == Phase.WAITING_ACCEPT)) {
+                        st.copy(
+                            incoming = inc.copy(
+                                phase = Phase.FAILED,
+                                message = "دریافت انجام نشد — فرستنده را دوباره بررسی کنید",
+                            ),
+                            request = null,
+                        )
+                    } else {
+                        st
+                    }
+                }
             }
         }
     }
@@ -602,7 +687,14 @@ class TransferEngine(private val app: Context) {
                 message = if (offset > 0) "ادامه از ${Fmt.bytes(offset)}" else null,
             )
         }
+        val startedAt = System.currentTimeMillis()
         acquireWake()
+        val ackJob = scope.launch {
+            while (isActive) {
+                delay(250)
+                runCatching { sendText(s, JSONObject().put("t", "progress").put("recv", received)) }
+            }
+        }
         try {
             while (true) {
                 val item = withTimeoutOrNull(120_000) { s.inbox.receiveCatching().getOrNull() }
@@ -641,6 +733,7 @@ class TransferEngine(private val app: Context) {
                 }
             }
         } finally {
+            ackJob.cancel()
             runCatching { raf.close() }
             releaseWake()
         }
@@ -680,12 +773,14 @@ class TransferEngine(private val app: Context) {
             s,
             JSONObject().put("t", "done").put("ok", ok).put("size", received).put("sha", mySha ?: JSONObject.NULL),
         )
+        val dur = (System.currentTimeMillis() - startedAt).coerceAtLeast(1)
         setIn {
             it.copy(
                 phase = Phase.DONE,
                 bytes = received,
                 size = received,
-                speed = 0,
+                speed = received * 1000L / dur,
+                durationMs = dur,
                 sha256 = mySha,
                 message = if (ok) "دریافت کامل شد" else "هشدار: چک‌سام مطابقت نداشت",
             )
@@ -810,7 +905,13 @@ class TransferEngine(private val app: Context) {
                     s.inbox.trySend(Msg.Bin(bytes))
                 } else {
                     val json = runCatching { JSONObject(String(bytes, Charsets.UTF_8)) }.getOrNull()
-                    if (json != null) s.inbox.trySend(Msg.Text(json))
+                    if (json != null) {
+                        if (json.optString("t") == "progress") {
+                            s.peerAck = json.optLong("recv", -1L)
+                        } else {
+                            s.inbox.trySend(Msg.Text(json))
+                        }
+                    }
                 }
             }
         })
@@ -896,6 +997,13 @@ class TransferEngine(private val app: Context) {
 
         @Volatile
         var sentBytes = 0L
+
+        /** آخرین آفستی که گیرنده تأیید کرده است. */
+        @Volatile
+        var peerAck = -1L
+
+        @Volatile
+        var startedAt = 0L
 
         var pc: PeerConnection? = null
         var dc: DataChannel? = null

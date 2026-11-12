@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+env:
+  VERSION: "1.1.0"
+  TAG: "v1.1.0"
+
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
@@ -52,10 +56,10 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release.apk out/Cyberdrop-1.0.0.apk
+          cp app/build/outputs/apk/release/app-release.apk out/Cyberdrop-${VERSION}.apk
           AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
-          $AAPT dump badging out/Cyberdrop-1.0.0.apk 2>&1 | head -30 | tee inspect.txt
-          unzip -l out/Cyberdrop-1.0.0.apk | grep -E "lib/|classes" | tail -12 | tee -a inspect.txt
+          $AAPT dump badging out/Cyberdrop-${VERSION}.apk 2>&1 | head -30 | tee inspect.txt
+          unzip -l out/Cyberdrop-${VERSION}.apk | grep -E "lib/|classes" | tail -12 | tee -a inspect.txt
           ls -l out
           sha256sum out/*.apk | tee out/SHA256.txt
 
@@ -71,12 +75,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           SHA_SHORT=$(echo "${GITHUB_SHA}" | cut -c1-7)
-          HASH=$(sha256sum out/Cyberdrop-1.0.0.apk | cut -c1-32)
+          HASH=$(sha256sum out/Cyberdrop-${VERSION}.apk | cut -c1-32)
           NOW=$(date -u +%Y-%m-%dT%H:%MZ)
           BODY="APK امضاشدهٔ Cyberdrop — انتقال فایل P2P بدون سرور، با ادامهٔ خودکار پس از قطعی. build ${SHA_SHORT} · ${NOW} · sha256 ${HASH}"
-          gh release view v1.0.0 >/dev/null 2>&1 || gh release create v1.0.0 --title "Cyberdrop 1.0.0" --notes "$BODY"
-          gh release upload v1.0.0 out/Cyberdrop-1.0.0.apk out/SHA256.txt --clobber
-          gh release edit v1.0.0 --notes "$BODY"
+          gh release view ${TAG} >/dev/null 2>&1 || gh release create ${TAG} --title "Cyberdrop ${VERSION}" --notes "$BODY"
+          gh release upload ${TAG} out/Cyberdrop-${VERSION}.apk out/SHA256.txt --clobber
+          gh release edit ${TAG} --notes "$BODY"
+
+      - name: Annotate failure
+        if: failure()
+        run: python3 .ci-tools/annotate.py build.log
 
       - name: Publish build log (failures only)
         if: failure()
