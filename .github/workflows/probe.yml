@@ -1,0 +1,35 @@
+name: probe
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths: [".github/workflows/probe.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe maven metadata
+        run: |
+          set -o pipefail
+          probe() {
+            echo "### $1"
+            curl -s --max-time 25 "$1" | grep -o '<version>[^<]*</version>' | tail -12 | tr '\n' ' '
+            echo
+            echo "--- latest/release:"
+            curl -s --max-time 25 "$1" | grep -o '<\(latest\|release\)>[^<]*</\1>'
+            echo
+          }
+          M=https://repo1.maven.org/maven2
+          G=https://dl.google.com/dl/android/maven2
+          probe $M/io/github/webrtc-sdk/android/maven-metadata.xml
+          probe $M/org/webrtc/google-webrtc/maven-metadata.xml
+          probe $M/com/dafruits/webrtc/maven-metadata.xml
+          probe $M/org/eclipse/paho/org.eclipse.paho.client.mqttv3/maven-metadata.xml
+          probe $M/org/jetbrains/kotlin/kotlin-gradle-plugin/maven-metadata.xml
+          probe $M/org/jetbrains/kotlinx/kotlinx-coroutines-android/maven-metadata.xml
+          probe $G/androidx/compose/compose-bom/maven-metadata.xml
+          probe $G/com/android/tools/build/gradle/maven-metadata.xml
+          probe $G/androidx/activity/activity-compose/maven-metadata.xml
+          probe $G/androidx/lifecycle/lifecycle-runtime-compose/maven-metadata.xml
+          probe $G/androidx/documentfile/documentfile/maven-metadata.xml
+          probe $M/io/ktor/ktor-client-core/maven-metadata.xml
